@@ -11,9 +11,12 @@ if [[ -n "$TAILSCALE_IP" ]]; then
     echo "Password: $(jq -r '.inputs.password' $GITHUB_EVENT_PATH)"
     echo "=========================================="
     
-    # Test koneksi SSH
-    echo "Testing SSH connection..."
-    sudo netstat -tlnp | grep ssh
+    # Cek status SSH service (tanpa testing koneksi)
+    echo "SSH Service Status:"
+    sudo systemctl is-active ssh
+    echo ""
+    echo "Listening ports:"
+    sudo netstat -tlnp | grep :22 || echo "Port 22 not listening"
 else
     echo "Error: Tailscale not connected or no IP address assigned"
     echo "Checking Tailscale status..."
