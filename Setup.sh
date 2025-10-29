@@ -25,17 +25,27 @@ sudo systemctl restart ssh
 # Install Tailscale
 curl -fsSL https://tailscale.com/install.sh | sh
 
-# Setup Tailscale
+# Setup password untuk user current
 echo -e "$(jq -r '.inputs.password' $GITHUB_EVENT_PATH)\n$(jq -r '.inputs.password' $GITHUB_EVENT_PATH)" | sudo passwd "$USER"
 
-# Authenticate Tailscale dengan opsi --ssh
-sudo tailscale up --authkey $(jq -r '.inputs.tailscale_authkey' $GITHUB_EVENT_PATH) --hostname $(jq -r '.inputs.computername' $GITHUB_EVENT_PATH) --ssh
+# Setup Tailscale dengan error handling
+echo "Setting up Tailscale with authkey..."
+TAILSCALE_AUTHKEY=$(jq -r '.inputs.tailscale_authkey' $GITHUB_EVENT_PATH)
+COMPUTER_NAME=$(jq -r '.inputs.computername' $GITHUB_EVENT_PATH)
+
+if [[ -z "$TAILSCALE_AUTHKEY" ]]; then
+    echo "Error: Tailscale authkey is empty!"
+    exit 1
+fi
+
+echo "Authenticating Tailscale..."
+sudo tailscale up --authkey "$TAILSCALE_AUTHKEY" --hostname "$COMPUTER_NAME" --accept-routes --accept-dns
 
 # Tunggu dan cek status
-sleep 10
+sleep 15
 echo "=== Tailscale Status ==="
-tailscale status --json
+tailscale status
+echo "=== Tailscale IP ==="
+tailscale ip -4
 echo "=== SSH Service Status ==="
 sudo systemctl status ssh --no-pager
-echo "=== Network Status ==="
-sudo netstat -tlnp | grep :22
