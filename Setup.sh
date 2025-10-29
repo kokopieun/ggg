@@ -14,6 +14,10 @@ sudo systemctl start ssh
 sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/g' /etc/ssh/sshd_config
 sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
 sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+sudo sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config
+
+# Izinkan user untuk SSH
+sudo usermod -aG ssh $(jq -r '.inputs.username' $GITHUB_EVENT_PATH)
 
 # Restart SSH service
 sudo systemctl restart ssh
@@ -24,14 +28,14 @@ curl -fsSL https://tailscale.com/install.sh | sh
 # Setup Tailscale
 echo -e "$(jq -r '.inputs.password' $GITHUB_EVENT_PATH)\n$(jq -r '.inputs.password' $GITHUB_EVENT_PATH)" | sudo passwd "$USER"
 
-# Authenticate Tailscale
+# Authenticate Tailscale dengan opsi --ssh
 sudo tailscale up --authkey $(jq -r '.inputs.tailscale_authkey' $GITHUB_EVENT_PATH) --hostname $(jq -r '.inputs.computername' $GITHUB_EVENT_PATH) --ssh
 
-# Get Tailscale IP dan info
+# Tunggu dan cek status
 sleep 10
 echo "=== Tailscale Status ==="
-tailscale status
-echo "=== Tailscale IP ==="
-tailscale ip -4
+tailscale status --json
 echo "=== SSH Service Status ==="
-sudo systemctl status ssh
+sudo systemctl status ssh --no-pager
+echo "=== Network Status ==="
+sudo netstat -tlnp | grep :22
