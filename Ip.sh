@@ -1,8 +1,12 @@
 #!/bin/bash
-TAILSCALE_IP=$(tailscale ip -4)
+echo "Checking Tailscale status..."
+tailscale status
+
+TAILSCALE_IP=$(tailscale ip -4 2>/dev/null)
 
 if [[ -n "$TAILSCALE_IP" ]]; then
     echo "=========================================="
+    echo "✅ TAILSCALE CONNECTED"
     echo "SSH Connection Command:"
     echo "ssh $(jq -r '.inputs.username' $GITHUB_EVENT_PATH)@$TAILSCALE_IP"
     echo ""
@@ -11,15 +15,21 @@ if [[ -n "$TAILSCALE_IP" ]]; then
     echo "Password: $(jq -r '.inputs.password' $GITHUB_EVENT_PATH)"
     echo "=========================================="
     
-    # Cek status SSH service (tanpa testing koneksi)
     echo "SSH Service Status:"
     sudo systemctl is-active ssh
-    echo ""
-    echo "Listening ports:"
-    sudo netstat -tlnp | grep :22 || echo "Port 22 not listening"
 else
-    echo "Error: Tailscale not connected or no IP address assigned"
-    echo "Checking Tailscale status..."
-    tailscale status
+    echo "=========================================="
+    echo "❌ TAILSCALE DISCONNECTED"
+    echo "Possible issues:"
+    echo "1. Invalid auth key"
+    echo "2. Auth key expired" 
+    echo "3. Network issues"
+    echo "4. Tailscale service not running"
+    echo ""
+    echo "Checking Tailscale service..."
+    sudo systemctl status tailscaled --no-pager
+    echo ""
+    echo "Please check your Tailscale auth key and try again"
+    echo "=========================================="
     exit 4
 fi
